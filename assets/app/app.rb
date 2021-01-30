@@ -24,8 +24,15 @@ class App < Snabberb::Component
   include GameManager
   include UserManager
   needs :pin, default: nil
+  needs :show_games_submenu, default: false, store: true
+  needs :show_main_submenu, default: false, store: true
 
   def render
+    close_submenus = lambda do
+      store(:show_games_submenu, false, skip: true)
+      store(:show_main_submenu, false)
+    end
+
     props = {
       props: { id: 'app' },
       style: {
@@ -35,6 +42,7 @@ class App < Snabberb::Component
         padding: '0 2vmin 2vmin 2vmin',
         transition: 'background-color 1s ease',
       },
+      on: { click: close_submenus },
     }
 
     h(:div, props, [
