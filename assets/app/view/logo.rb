@@ -8,7 +8,7 @@ module View
     def render
       show_home = lambda do
         store(:app_route, '/')
-        `document.getElementById('app').scrollIntoView();`
+        `document.getElementById('app').scrollIntoView()`
       end
 
       h1_props = {
