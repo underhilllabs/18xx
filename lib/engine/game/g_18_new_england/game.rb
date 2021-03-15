@@ -585,7 +585,7 @@ module Engine
         ].freeze
 
         def setup
-          @yellow_corporations = @corporations.select{|c| c.type == 'minor'}.sample(10)
+          @yellow_corporations = @corporations.select { |c| c.type == 'minor' }.sample(10)
           @corporations, @future_corporations = @corporations.partition do |corporation|
             corporation.type == :minor && @yellow_corporations.include?(corporation.id)
           end
