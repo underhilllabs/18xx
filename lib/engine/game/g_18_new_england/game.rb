@@ -214,6 +214,7 @@ module Engine
             price: 180,
             rusts_on: '6E',
             num: 7,
+            events: [{ 'type' => 'green_minors_available' }],
           },
           {
             name: '4',
@@ -582,6 +583,26 @@ module Engine
           { lay: true, upgrade: true },
           { lay: true, upgrade: :not_if_upgraded, cost: 20, cannot_reuse_same_hex: true },
         ].freeze
+
+        def setup
+          @yellow_corporations = @corporations.select{|c| c.type == 'minor'}.sample(10)
+          @corporations, @future_corporations = @corporations.partition do |corporation|
+            corporation.type == :minor && @yellow_corporations.include?(corporation.id)
+          end
+        end
+
+        def event_green_minors_available!
+          @log << 'Green minors are now available'
+
+          # Can now lay on the 3
+          @hidden_company.close!
+          # Remove the green tokens
+          @green_tokens.map(&:remove!)
+
+          # All the corporations become available, as minors can now merge/convert to corporations
+          @corporations += @future_corporations
+          @future_corporations = []
+        end
       end
     end
   end
