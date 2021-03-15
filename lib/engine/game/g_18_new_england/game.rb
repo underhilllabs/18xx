@@ -429,17 +429,6 @@ module Engine
             reservation_color: nil,
           },
           {
-            sym: 'BA',
-            name: 'Boston and Albany Railroad',
-            logo: '18_new_england/BA',
-            color: 'red',
-            tokens: [0, 40, 80],
-            float_percent: 20,
-            shares: [20, 10, 10, 10, 10, 10, 10, 10, 10],
-            type: 'major',
-            reservation_color: nil,
-          },
-          {
             sym: 'BAR',
             name: 'Boston and Albany Railroad',
             logo: '18_new_england/BAR',
