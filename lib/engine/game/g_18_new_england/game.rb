@@ -587,13 +587,19 @@ module Engine
           @log << 'Green minors are now available'
 
           # Can now lay on the 3
-          @hidden_company.close!
+          # @hidden_company.close!
           # Remove the green tokens
-          @green_tokens.map(&:remove!)
+          # @green_tokens.map(&:remove!)
 
           # All the corporations become available, as minors can now merge/convert to corporations
           @corporations += @future_corporations
           @future_corporations = []
+        end
+
+        def init_round
+          Round::Draft.new(self,
+                           [G18NewEngland::Step::Draft],
+                           snake_order: true)
         end
       end
     end

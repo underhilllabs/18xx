@@ -6,11 +6,11 @@ module Engine
   module Game
     module G18NewEngland
       module Step
-        class DraftMinors < Engine::Step::Base
+        class MinorsDraft < Engine::Step::Base
           attr_reader :corporations, :choices, :minor_slots
 
           ACTIONS = %w[float reserve].freeze
-          ACTIONS_WITH_PASS = %w[float reserve pass].freeze
+          ACTIONS_WITH_PASS = %w[float reserve pass relinquish].freeze
 
           def setup
             @companies = @game.companies.sort_by { @game.rand }
@@ -21,6 +21,7 @@ module Engine
 
           def build_minor_slots
             %i[50 55 60 65 70].each do |price|
+              @minor_slots[price] = []
               %i[top bottom].each do |pos|
                 @minor_slots[price][pos] = :available
               end
@@ -96,25 +97,23 @@ module Engine
           def process_pass(_action)
             raise GameError, 'Cannot pass' unless only_one_company?
 
-            company = @companies[0]
-            old_price = company.min_bid
-            company.discount += 10
-            new_price = company.min_bid
-            @log << "#{company.name} price decreases from #{@game.format_currency(old_price)} "\
-              "to #{@game.format_currency(new_price)}"
-
-            @round.next_entity_index!
-
-            return unless new_price == company.min_auction_price
-
-            choose_company(current_entity, company)
-            action_finalized
           end
 
-          def process_bid(action)
+          def process_float(action)
             choose_company(action.entity, action.company)
             @round.next_entity_index!
             action_finalized
+          end
+
+          def process_reserve(action)
+            company = action.company
+            player = action.entity
+            available_companies = available
+            @reserved[player] << company 
+            available_companies.delete(company)
+          end
+
+          def process_relinquish(action)
           end
 
           def choose_company(player, company)
