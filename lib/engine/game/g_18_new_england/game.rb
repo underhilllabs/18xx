@@ -2,6 +2,7 @@
 
 require_relative 'meta'
 # require_relative 'stock_market'
+require_relative 'step/draft'
 require_relative '../base'
 
 module Engine
@@ -598,7 +599,7 @@ module Engine
 
         def init_round
           Round::Draft.new(self,
-                           [G18NewEngland::Step::MinorsDraft],
+                           [G18NewEngland::Step::Draft],
                            snake_order: true)
         end
       end
