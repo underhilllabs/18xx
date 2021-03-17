@@ -220,6 +220,11 @@ module Engine
       # allows multiple lays, value must be either true, false or :not_if_upgraded
       TILE_LAYS = [{ lay: true, upgrade: true, cost: 0 }].freeze
 
+      # The tile type of the game
+      # :normal Tile type like 1830, 1846.
+      # :lawson Tile type like 1817, 1822
+      TILE_TYPE = :normal
+
       IMPASSABLE_HEX_COLORS = %i[blue gray red].freeze
 
       EVENTS_TEXT = {
@@ -328,6 +333,20 @@ module Engine
         meta_module.constants.each do |const|
           const_set(const, meta_module.const_get(const))
         end
+
+        const_set(:META, meta_module)
+      end
+
+      def self.meta
+        self::META
+      end
+
+      def meta
+        self.class.meta
+      end
+
+      def game_instance?
+        true
       end
 
       def initialize(names, id: 0, actions: [], pin: nil, strict: false, optional_rules: [], user: nil)
@@ -918,7 +937,7 @@ module Engine
       end
 
       def float_str(entity)
-        "#{entity.percent_to_float}% to float" if entity.corporation?
+        "#{entity.percent_to_float}% to float" if entity.corporation? && entity.floatable
       end
 
       def route_distance_str(route)

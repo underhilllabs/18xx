@@ -6,9 +6,11 @@ module Engine
 
     def self.connect!(hex)
       hex.tile.paths.each do |path|
-        path.walk do |_, visited|
+        path.walk do |current, visited|
+          next unless current.node?
+
           chain = visited.keys
-          next unless valid_connection?(chain)
+          next unless chain.sum { |p| p.nodes.size } > 1
 
           path = chain[0]
 
@@ -27,28 +29,6 @@ module Engine
       hex.connections.each do |_, connections|
         connections.uniq!(&:hash)
       end
-    end
-
-    def self.valid_connection?(chain)
-      ends = Hash.new(0)
-      nodes = 0
-
-      chain.each do |path|
-        a = path.a
-        b = path.b
-
-        # invalid if edge or node appears more than once, or junction appears more than twice (loops)
-        return false if !a.junction? && ends[a.id].positive?
-        return false if !b.junction? && ends[b.id].positive?
-        return false if ends[a.id] > 1
-        return false if ends[b.id] > 1
-
-        ends[a.id] += 1
-        ends[b.id] += 1
-        nodes += path.nodes.size if nodes < 2
-      end
-
-      nodes > 1
     end
 
     def initialize(paths = [])

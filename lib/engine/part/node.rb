@@ -43,18 +43,28 @@ module Engine
       # on: see Path::Walk
       # corporation: If set don't walk on adjacent nodes which are blocked for the passed corporation
       # skip_track: If passed, don't walk on track of that type (ie: :broad track for 1873)
+      # max_nodes: If passed, stop walking after visiting the number of nodes
       #
       # This method recursively bubbles up yielded values from nested Node::Walk and Path::Walk calls
-      def walk(visited: {}, on: nil, corporation: nil, visited_paths: {}, skip_track: nil)
+      def walk(
+        visited: {},
+        on: nil,
+        corporation: nil,
+        visited_paths: {},
+        counter: Hash.new(0),
+        skip_track: nil,
+        tile_type: :normal,
+        max_nodes: nil
+      )
         return if visited[self]
 
-        visited = visited.dup
         visited[self] = true
+        return if max_nodes && visited.size >= max_nodes
 
         paths.each do |node_path|
           next if node_path.track == skip_track
 
-          node_path.walk(visited: visited_paths, on: on) do |path, vp|
+          node_path.walk(visited: visited_paths, counter: counter, on: on, tile_type: tile_type) do |path, vp, ct|
             yield path
             next if path.terminal?
 
@@ -64,14 +74,19 @@ module Engine
 
               next_node.walk(
                 visited: visited,
+                counter: ct,
                 on: on,
                 corporation: corporation,
                 visited_paths: vp,
                 skip_track: skip_track,
+                tile_type: tile_type,
+                max_nodes: max_nodes,
               ) { |p| yield p }
             end
           end
         end
+
+        visited.delete(self) unless tile_type == :lawson
       end
     end
   end
