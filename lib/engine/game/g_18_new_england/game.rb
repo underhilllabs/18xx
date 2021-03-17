@@ -598,9 +598,9 @@ module Engine
         end
 
         def init_round
-          Round::Draft.new(self,
-                           [G18NewEngland::Step::Draft],
-                           snake_order: true)
+          Engine::Round::Draft.new(self,
+                                   [G18NewEngland::Step::Draft],
+                                   snake_order: true)
         end
       end
     end
