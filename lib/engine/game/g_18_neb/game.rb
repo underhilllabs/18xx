@@ -4,7 +4,6 @@ require_relative 'entities'
 require_relative 'map'
 require_relative 'meta'
 require_relative '../base'
-require_relative '../g_1846/step/dividend'
 
 module Engine
   module Game
@@ -108,7 +107,7 @@ module Engine
         EBUY_OTHER_VALUE = false # allow ebuying other corp trains for up to face
         HOME_TOKEN_TIMING = :float # not :operating_round
         # Two tiles can be laid, only one upgrade
-        TILE_LAYS = [{ lay: true, upgrade: true }, { lay: true, cost: 20, upgrade: :not_if_upgraded }].freeze
+        TILE_LAYS = [{ lay: true, upgrade: true }, { lay: true, upgrade: :not_if_upgraded }].freeze
 
         def setup
           @corporations, @future_corporations = @corporations.partition { |corporation| corporation.type != :local }
@@ -203,8 +202,7 @@ module Engine
             Engine::Step::Track,
             Engine::Step::Token,
             Engine::Step::Route,
-            # Engine::Step::Dividend,
-            G1846::Step::Dividend,
+            G18Neb::Step::Dividend,
             Engine::Step::DiscardTrain,
             Engine::Step::BuyTrain,
             [Engine::Step::BuyCompany, blocks: true],
