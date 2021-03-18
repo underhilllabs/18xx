@@ -103,17 +103,28 @@ module Engine
             name: 'Armour and Company',
             value: 70,
             revenue: 15,
-            desc: 'An owning Corporation may place a cattle token in any Town or City',
-            sym: 'P3',
+            desc: 'This company has two tokens. One represents an open cattle token and the other is a closed cattle token.'\
+            ' One (but not both) of these tokens may be placed on any city or town, but not an off-board location.'\
+            ' Either token increases the value of the city for the owning company by $20.'\
+            ' The open cattle also increases the value of the city for all other companies by $10.'\
+            ' If the president of the owning company places the closed cattle token, the private company is closed. If'\
+            ' the open cattle token is placed, it may be replaced in a later operating round by the closed cattle token,'\
+            ' closing the company.',
+            sym: 'AC',
             abilities: [
               {
                 type: 'assign_hexes',
                 hexes: %w[B6 C3 C7 C9 E7 F6 G7 G11 H8 H10 I3 I5 J8 J12 K3 K7 L10],
+                count: 2,
+                owner_type: 'corporation',
+                when: 'owning_corp_or_turn',
+              },
+              {
+                type: 'assign_corporation',
+                when: 'sold',
                 count: 1,
-                when: 'TrackAndToken',
                 owner_type: 'corporation',
               },
-              { type: 'hex_bonus', owner_type: 'corporation', amount: 20, hexes: [] },
             ],
             color: nil,
           },

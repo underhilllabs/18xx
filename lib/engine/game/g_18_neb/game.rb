@@ -4,7 +4,7 @@ require_relative 'entities'
 require_relative 'map'
 require_relative 'meta'
 require_relative '../base'
-require_relative '../g_1846/step/dividend'
+require_relative '../g_1867/step/dividend'
 
 module Engine
   module Game
@@ -178,6 +178,11 @@ module Engine
           @future_corporations = []
         end
 
+        ASSIGNMENT_TOKENS = {
+          'GSC' => '/icons/1870/GSC.svg',
+          'GSCᶜ' => '/icons/1870/GSC_closed.svg',
+        }.freeze
+
         def init_round
           Round::Auction.new(self, [
             Engine::Step::CompanyPendingPar,
@@ -202,9 +207,10 @@ module Engine
             Engine::Step::BuyCompany,
             Engine::Step::Track,
             Engine::Step::Token,
+            G18Neb::Step::Assign,
             Engine::Step::Route,
             # Engine::Step::Dividend,
-            G1846::Step::Dividend,
+            G1867::Step::Dividend,
             Engine::Step::DiscardTrain,
             Engine::Step::BuyTrain,
             [Engine::Step::BuyCompany, blocks: true],
