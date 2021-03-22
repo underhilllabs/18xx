@@ -22,7 +22,7 @@ module Engine
 
         attr_reader :mine_12, :corporation_info, :diesel_graph, :hw, :minor_info, :mhe, :mine_graph, :nwe, :qlb,
                     :reserved_tiles, :subtrains
-        attr_accessor :premium, :premium_order, :premium_winner
+        attr_accessor :premium, :premium_order, :premium_winner, :reimbursed_hexes
 
         CURRENCY_FORMAT_STR = '%d ℳ'
         BANK_CASH = 100_000
@@ -112,6 +112,25 @@ module Engine
             '3T' => 150,
           },
         }.freeze
+
+        STATUS_TEXT = Base::STATUS_TEXT.merge(
+          'HBE_GHE_active' => ['HBE GHE available',
+                               'HBE and GHE concessions are active'],
+          'NWE_SHE_KEZ_may' => ['NWE SHE KEZ ?',
+                                'NWE, SHE and KEZ concessions may be activated'],
+          'NWE_SHE_KEZ_active' => ['NWE SHE KEZ available, WBE ?',
+                                   'NWE, SHE and KEZ concessions are active; WBE may be activated'],
+          'WBE_QLB_active' => ['WBE QLB available',
+                               'WBE and QLB concessions are active'],
+          'maintenance_level_1' => ['Level 1 Maintenance',
+                                    '1M, 1T: 50 ℳ'],
+          'maintenance_level_2' => ['Level 2 Maintenance',
+                                    '1M, 1T, 2T: 100 ℳ | 2M: 50 ℳ | 2S: 20 ℳ'],
+          'maintenance_level_3' => ['Level 3 Maintenance',
+                                    '1M, 1T, 2T, 3T: 150 ℳ | 2M: 100 ℳ | 2S: 50 ℳ | 3M: 50 ℳ | 3S: 30 ℳ'],
+          'end_of_game_trigger' => ['End of game triggered',
+                                    'Game will end after 2nd full set of ORs after this'],
+        ).freeze
 
         # tiles to be laid to complete concession
         CONCESSION_TILES = {
@@ -220,6 +239,8 @@ module Engine
           @switcher_index = 0
           @machine_index = trains.size
           @next_switcher = nil
+
+          @reimbursed_hexes = Hash.new { |h, k| h[k] = 0 }
 
           @subtrains = Hash.new { |h, k| h[k] = [] }
           @subtrain_index = {}
@@ -641,7 +662,7 @@ module Engine
           @log << "#{minor.name} is closed"
 
           # any machines/switchers are trashed
-          minor.trains.each { |t| scrap_train(t) }
+          minor.trains.dup.each { |t| scrap_train(t) }
 
           if minor.owner && minor.cash.positive?
             @log << "#{minor.name} transfers #{format_currency(minor.cash)} to #{minor.owner.name}"
@@ -724,10 +745,12 @@ module Engine
 
           # toss any trains that have maintenance costs
           if railway?(entity)
-            entity.trains.each { |t| scrap_train(t) if train_maintenance(t.name).positive? }
+            entity.trains.dup.each { |t| scrap_train(t) if train_maintenance(t.name).positive? }
           else
             public_mine_mines(entity).each do |mine|
-              mine.trains.each { |t| scrap_train(t) if train_maintenance(t.name).positive? }
+              mine.trains.dup.each do |t|
+                scrap_train(t) if train_maintenance(t.name).positive?
+              end
             end
           end
 
@@ -2980,6 +3003,7 @@ module Engine
                 'yellow',
               ],
               operating_rounds: 1,
+              status: ['HBE_GHE_active'],
             },
             {
               name: '2',
@@ -2989,6 +3013,7 @@ module Engine
                 'yellow',
               ],
               operating_rounds: 1,
+              status: ['NWE_SHE_KEZ_may'],
             },
             {
               name: '3',
@@ -2999,6 +3024,7 @@ module Engine
                 green
               ],
               operating_rounds: 2,
+              status: %w[NWE_SHE_KEZ_active maintenance_level_1],
             },
             {
               name: '4',
@@ -3009,6 +3035,7 @@ module Engine
                 green
               ],
               operating_rounds: 2,
+              status: %w[WBE_QLB_active maintenance_level_2],
             },
             {
               name: '5',
@@ -3020,6 +3047,7 @@ module Engine
                 brown
               ],
               operating_rounds: 3,
+              status: %w[end_of_game_trigger maintenance_level_2],
             },
             {
               name: '5a',
@@ -3030,6 +3058,7 @@ module Engine
                 brown
               ],
               operating_rounds: 3,
+              status: ['maintenance_level_2'],
             },
             {
               name: 'D',
@@ -3042,6 +3071,7 @@ module Engine
                 gray
               ],
               operating_rounds: 3,
+              status: ['maintenance_level_3'],
             },
           ]
         end

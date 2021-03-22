@@ -1172,7 +1172,7 @@ module Engine
             text_color: 'black',
           },
           {
-            name: 'MINOR: 4. Newcastle & North shields Railway',
+            name: 'MINOR: 4. Newcastle & North Shields Railway',
             sym: 'M4',
             value: 100,
             revenue: 0,
@@ -1495,7 +1495,7 @@ module Engine
           },
           {
             sym: '4',
-            name: 'Newcastle & North shields Railway',
+            name: 'Newcastle & North Shields Railway',
             logo: '1822/4',
             tokens: [0],
             type: 'minor',
@@ -3253,7 +3253,7 @@ module Engine
             interest = player_loan_interest(loan)
             new_loan = loan + interest
             @player_debts[player] = new_loan
-            @log << "#{player.name} increases its loan by 50% (#{format_currency(interest)}) to "\
+            @log << "#{player.name} increases their loan by 50% (#{format_currency(interest)}) to "\
                     "#{format_currency(new_loan)}"
           end
         end
