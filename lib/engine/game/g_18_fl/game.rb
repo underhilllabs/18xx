@@ -317,7 +317,7 @@ module Engine
               hexes: [],
               tiles: [],
               closed_when_used_up: 'true',
-              when: 'track',
+              when: %w[track owning_player_or_turn],
             },
           ],
             color: nil,
@@ -379,7 +379,8 @@ module Engine
             value: 0,
             discount: -110,
             revenue: 20,
-            desc: 'This Company comes with a single share of the Florida East Coast Railway',
+            desc: 'This Company comes with a single share of the Florida East Coast Railway. '\
+            'This company closes when the FECR buys its first train',
             sym: 'FECCTC',
             min_players: 4,
             abilities: [{ type: 'close', when: 'bought_train', corporation: 'FECR' },
@@ -579,7 +580,6 @@ module Engine
         def stock_round
           Engine::Round::Stock.new(self, [
             Engine::Step::DiscardTrain,
-            Engine::Step::HomeToken,
             G18FL::Step::BuySellParShares,
           ])
         end
@@ -636,6 +636,19 @@ module Engine
           hotels = stops.count { |h| h.tile.icons.any? { |i| i.name == route.corporation.id } }
 
           revenue + hotels * hotel_value
+        end
+
+        def init_hexes(_companies, corporations)
+          hexes = super
+          place_home_tokens(corporations, hexes)
+          hexes
+        end
+
+        def place_home_tokens(corporations, hexes)
+          corporations.each do |corporation|
+            tile = hexes.find { |hex| hex.coordinates == corporation.coordinates }.tile
+            tile.cities[corporation.city || 0].place_token(corporation, corporation.tokens.first, free: true)
+          end
         end
 
         def hotel_value

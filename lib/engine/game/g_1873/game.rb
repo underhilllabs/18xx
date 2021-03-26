@@ -61,11 +61,6 @@ module Engine
 
         GAME_END_CHECK = { stock_market: :current_or, custom: :one_more_full_or_set }.freeze
 
-        # FIXME
-        STATUS_TEXT = Base::STATUS_TEXT.merge(
-          'end_game_triggered' => ['End Game', 'After next SR, final three ORs are played'],
-        ).freeze
-
         RAILWAY_MIN_BID = 100
         MIN_BID_INCREMENT = 10
         MHE_START_PRICE = 120
@@ -115,13 +110,13 @@ module Engine
 
         STATUS_TEXT = Base::STATUS_TEXT.merge(
           'HBE_GHE_active' => ['HBE GHE available',
-                               'HBE and GHE concessions are active'],
+                               'HBE and GHE concessions become active'],
           'NWE_SHE_KEZ_may' => ['NWE SHE KEZ ?',
                                 'NWE, SHE and KEZ concessions may be activated'],
           'NWE_SHE_KEZ_active' => ['NWE SHE KEZ available, WBE ?',
-                                   'NWE, SHE and KEZ concessions are active; WBE may be activated'],
+                                   'NWE, SHE and KEZ concessions become active; WBE may be activated'],
           'WBE_QLB_active' => ['WBE QLB available',
-                               'WBE and QLB concessions are active'],
+                               'WBE and QLB concessions become active'],
           'maintenance_level_1' => ['Level 1 Maintenance',
                                     '1M, 1T: 50 ℳ'],
           'maintenance_level_2' => ['Level 2 Maintenance',
@@ -274,7 +269,8 @@ module Engine
               share_pool,
               spender: share_pool,
               receiver: @bank,
-              price: 0
+              price: 0,
+              allow_president_change: false
             )
           end
           @mhe.owner = @share_pool
@@ -353,7 +349,7 @@ module Engine
 
         def create_pool_diesel(proto)
           new_train = Train.new(name: proto.name, distance: proto.distance, price: proto.price,
-                                index: @subtrain_index[proto.name], no_local: true)
+                                index: @subtrain_index[proto.name], no_local: true, reserved: true)
           new_train.owner = nil
           @depot.trains << new_train
           @diesel_pool[new_train] = { assigned: false, used: false }
@@ -527,7 +523,13 @@ module Engine
         def buy_train(operator, train, price = nil)
           old_owner = train.owner
 
-          super
+          operator.spend(price || train.price, train_operator(train)) if price != :free
+          remove_train(train)
+          train.owner = operator
+          operator.trains << train
+          @crowded_corps = nil
+
+          close_companies_on_train!(operator)
 
           return unless old_owner == @depot
 
@@ -581,7 +583,7 @@ module Engine
 
         def create_duplicate_train!(train, index)
           new_train = Train.new(name: train.name, distance: train.distance, price: train.price,
-                                index: index, no_local: true)
+                                index: index, no_local: true, reserved: true)
           new_train.owner = nil
           @subtrains[train] << new_train
           @supertrains[new_train] = train
@@ -617,7 +619,8 @@ module Engine
         def new_switcher
           return unless (level = switcher_level) > 1
 
-          switcher = Train.new(name: "#{level}S", distance: level, price: switcher_price, index: @switcher_index)
+          switcher = Train.new(name: "#{level}S", distance: level, price: switcher_price,
+                               index: @switcher_index, reserved: true)
           switcher.owner = @depot
           @depot.trains << switcher # needed for train_by_id
           update_cache(:trains)
@@ -647,7 +650,8 @@ module Engine
         def replicate_machines(train, count)
           t_array = [train]
           (count - 1).times do |_i|
-            new_train = Train.new(name: train.name, distance: train.distance, price: train.price, index: @machine_index)
+            new_train = Train.new(name: train.name, distance: train.distance, price: train.price,
+                                  index: @machine_index, reserved: true)
             @machine_index += 1
             t_array << new_train
           end
@@ -826,7 +830,7 @@ module Engine
           num_empty = submines.count { |m| !machine(m) }
           while num_empty.positive?
             new_machine = buy_reorg_train(entity, 'M')
-            entity.trains.delete(new_machine)
+            entity.trains.delete(new_machine) # PMCs don't own trains directly
 
             # fill empty slots first, then ones with smaller machines
             num_smaller = submines.count { |m| machine(m) && machine_size(m) < new_machine.distance }
@@ -859,15 +863,15 @@ module Engine
 
         # mines that open and in players hands
         def open_private_mines
-          @minors.select { |m| @players.include?(m.owner) && mine_open?(m) }
+          @minors.select { |m| m.owner && @players.include?(m.owner) && mine_open?(m) }
         end
 
         # mines that can be merged to form a public mining company
         def mergeable_private_mines(entity)
           if entity == @hw
-            @minors.select { |m| @players.include?(m.owner) && @minor_info[m][:vor_harzer] }
+            @minors.select { |m| m.owner && @players.include?(m.owner) && @minor_info[m][:vor_harzer] }
           else
-            @minors.select { |m| @players.include?(m.owner) }
+            @minors.select { |m| m.owner && @players.include?(m.owner) }
           end
         end
 
@@ -931,7 +935,8 @@ module Engine
                 share_pool,
                 spender: share_pool,
                 receiver: @bank,
-                price: 0
+                price: 0,
+                allow_president_change: pres_change_ok?(corporation)
               )
           end
 
@@ -971,19 +976,19 @@ module Engine
         end
 
         def independent_mine?(entity)
-          entity.minor? && @corporations.none? { |c| c == entity.owner }
+          entity&.minor? && @corporations.none? { |c| c == entity.owner }
         end
 
         def public_mine?(entity)
-          entity.corporation? && @corporation_info[entity][:type] == :mine
+          entity&.corporation? && @corporation_info[entity][:type] == :mine
         end
 
         def any_mine?(entity)
-          entity.minor? || (entity.corporation? && @corporation_info[entity][:type] == :mine)
+          entity&.minor? || (entity&.corporation? && @corporation_info[entity][:type] == :mine)
         end
 
         def railway?(entity)
-          entity.corporation? && @corporation_info[entity][:type] == :railway
+          entity&.corporation? && @corporation_info[entity][:type] == :railway
         end
 
         def concession_blocks?(city)
@@ -991,10 +996,10 @@ module Engine
           return false unless (exits = CONCESSION_ROUTE_EXITS[hex.id])
           return false unless concession_incomplete?(@concession_route_corporations[hex.id])
           # take care of OO tile. Only care about city along concession route
-          return false unless (city.exits & exits).size == exits.size
+          return false if (city.exits & exits).empty?
 
           # must be two slots available for another RR to put a token here
-          city.slots - city.tokens.count { |c| c } > 1
+          (city.slots - city.tokens.count { |c| c }) < 2
         end
 
         def concession_pending?(entity)
@@ -1187,7 +1192,7 @@ module Engine
 
         def stock_round_finished
           @players.each do |p|
-            p.companies.each do |c|
+            p.companies.dup.each do |c|
               c.owner = nil
               p.companies.delete(c)
               @log << "#{p.name} forfeits #{c.name}"
@@ -1301,7 +1306,10 @@ module Engine
           @log << "Reserving tile ##{tile.name} for #{ch[:entity]} concession route in hex #{hex.id}"
 
           # if there already is a reserved tile for this hex, make the old one available again
-          @tiles << @reserved_tiles[hex.id][:tile] unless @reserved_tiles[hex.id].empty?
+          unless @reserved_tiles[hex.id].empty?
+            @log << "Freeing reserved tile ##{@reserved_tiles[hex.id][:tile].name}"
+            @tiles << @reserved_tiles[hex.id][:tile]
+          end
 
           @reserved_tiles[hex.id] = { tile: tile, entity: ch[:entity] }
           @tiles.delete(tile)
@@ -1318,6 +1326,8 @@ module Engine
           # FIXME: need to check paths, not exits?
           return unless (ch[:exits] & tile.exits).size == ch[:exits].size
 
+          @log << "Freeing reserved tile ##{tile.name}"
+
           @tiles << @reserved_tiles[hex.id][:tile] if @reserved_tiles[hex.id][:tile] != tile
           @reserved_tiles.delete(hex.id)
         end
@@ -1326,7 +1336,7 @@ module Engine
           DOUBLE_LAY_TILES.include?(tile.name)
         end
 
-        def upgrades_to?(from, to, special = false)
+        def upgrades_to?(from, to, special = false, selected_company: nil)
           # correct color progression?
           if !(reserved_tiles[from.hex.id] && reserved_tiles[from.hex.id][:tile] == to) &&
             (Engine::Tile::COLORS.index(to.color) != (Engine::Tile::COLORS.index(from.color) + 1))
@@ -1343,7 +1353,7 @@ module Engine
           return false if from.label != to.label
 
           # old tile doesn't have a lock icon and it's not yet phase 3
-          return false if !@phase.tiles.include?(:green) && from.icons.any? { |i| i.name == 'lock' }
+          return false if !@phase.tiles.include?('green') && from.icons.any? { |i| i.name.to_s == 'lock' }
 
           # honors existing town/city counts?
           # 1873: towns always upgrade to cities
@@ -1388,16 +1398,17 @@ module Engine
           bundles.select { |bundle| @round.active_step.can_sell?(player, bundle) }
         end
 
-        # rubocop:disable Lint/UnusedMethodArgument
         def sell_shares_and_change_price(bundle, allow_president_change: true, swap: nil)
           corporation = bundle.corporation
           price = corporation.share_price.price
 
           @share_pool.sell_shares(bundle, allow_president_change: pres_change_ok?(corporation), swap: swap)
           if corporation == @mhe
-            bundle.num_shares.times do
-              @stock_market.move_down(corporation)
-            end unless @mhe.trains.any? { |t| t.name == '5T' }
+            unless @mhe.trains.any? { |t| t.name == '5T' }
+              bundle.num_shares.times do
+                @stock_market.move_down(corporation)
+              end
+            end
           elsif corporation.operated?
             bundle.num_shares.times { @stock_market.move_down(corporation) }
           else
@@ -1407,7 +1418,6 @@ module Engine
           end
           log_share_price(corporation, price)
         end
-        # rubocop:enable Lint/UnusedMethodArgument
 
         def pres_change_ok?(corporation)
           return false if corporation == @mhe
@@ -1845,13 +1855,20 @@ module Engine
           end
         end
 
-        def revenue_str(route)
-          # FIXME: not sure anything is needed here
-          super
-        end
-
+        #  subtrain owner is actually supertrain owner
         def train_owner(train)
           (@supertrains[train] || train).owner
+        end
+
+        # 1. subtrain owner is actually supertrain owner
+        # 2. need to use PMC if submine
+        #    don't want to make PMC direct owner of submine trains
+        #    - this makes PMC train mananagement easy
+        def train_operator(train)
+          owner = (@supertrains[train] || train).owner
+          return owner if !owner&.minor? || !public_mine?(owner&.owner)
+
+          owner.owner
         end
 
         def qlb_bonus
@@ -2923,6 +2940,9 @@ module Engine
             },
             gray: {
               %w[
+                A18
+              ] => 'path=a:5,b:2,terminal:1',
+              %w[
                 B9
               ] => 'city=slots:2,revenue:yellow_60|green_80|brown_120|gray_150;'\
                 'path=a:1,b:_0;path=a:4,b:_0;path=a:0,b:_0,track:narrow;path=a:5,b:_0,track:narrow;'\
@@ -2954,6 +2974,9 @@ module Engine
               ] => 'city=revenue:30,slots:2;path=a:0,b:_0,track:narrow;'\
                 'path=a:1,b:_0,track:narrow;path=a:4,b:_0,track:narrow;'\
                 'icon=image:1873/SBH9_open,sticky:1,large:1',
+              %w[
+                H21
+              ] => 'path=a:2,b:5,terminal:1',
               %w[
                 I2
               ] => 'city=revenue:yellow_40|green_50|brown_80|gray_120;path=a:1,b:_0;'\

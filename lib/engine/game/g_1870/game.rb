@@ -129,10 +129,10 @@ module Engine
         }.freeze
 
         MARKET = [
-          %w[64y 68 72 76 82 90 100p 110 120 140 160 180 200 225 250 285 300 325 350 375 400],
-          %w[60y 64y 68 72 76 82 90p 100 110 120 140 160 180 200 225 250 285 300 325 350 375],
-          %w[55y 60y 64y 68 72 76 82p 90 100 110 120 140 160 180 200 225 250i 285i 300i 325i 350i],
-          %w[50o 55y 60y 64y 68 72 76p 82 90 100 110 120 140 160i 180i 200i 225i 250i 285i 300i 325i],
+          %w[64y 68 72 76 82 90 100p 110 120 140 160 180 200 225 250 275 300 325 350 375 400],
+          %w[60y 64y 68 72 76 82 90p 100 110 120 140 160 180 200 225 250 275 300 325 350 375],
+          %w[55y 60y 64y 68 72 76 82p 90 100 110 120 140 160 180 200 225 250i 275i 300i 325i 350i],
+          %w[50o 55y 60y 64y 68 72 76p 82 90 100 110 120 140 160i 180i 200i 225i 250i 275i 300i 325i],
           %w[40b 50o 55y 60y 64 68 72p 76 82 90 100 110i 120i 140i 160i 180i],
           %w[30b 40o 50o 55y 60y 64 68p 72 76 82 90i 100i 110i],
           %w[20b 30b 40o 50o 55y 60y 64 68 72 76i 82i],
@@ -741,13 +741,11 @@ module Engine
           destination_stop.route_revenue(route.phase, route.train)
         end
 
-        # rubocop:disable Lint/UnusedMethodArgument
         def sell_shares_and_change_price(bundle, allow_president_change: true, swap: nil)
           @round.sell_queue << [bundle, bundle.corporation.owner]
 
           @share_pool.sell_shares(bundle)
         end
-        # rubocop:enable Lint/UnusedMethodArgument
 
         def legal_tile_rotation?(_entity, hex, tile)
           return true unless abilities(river_company, :blocks_partition)
@@ -760,7 +758,7 @@ module Engine
             end
         end
 
-        def upgrades_to?(from, to, _special = false)
+        def upgrades_to?(from, to, _special = false, selected_company: nil)
           return false if to.name == '171K' && from.hex.name != 'B11'
           return false if to.name == '172L' && from.hex.name != 'C18'
 

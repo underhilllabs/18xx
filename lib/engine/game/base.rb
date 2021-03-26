@@ -1238,7 +1238,7 @@ module Engine
         self.class::TILE_LAYS
       end
 
-      def upgrades_to?(from, to, special = false)
+      def upgrades_to?(from, to, special = false, selected_company: nil)
         # correct color progression?
         return false unless Engine::Tile::COLORS.index(to.color) == (Engine::Tile::COLORS.index(from.color) + 1)
 
@@ -1629,8 +1629,11 @@ module Engine
         @crowded_corps = nil
 
         @log << "-- Event: #{obsolete_trains.uniq.join(', ')} trains are obsolete --" if obsolete_trains.any?
+
+        return unless rusted_trains.any?
+
         @log << "-- Event: #{rusted_trains.uniq.join(', ')} trains rust " \
-          "( #{owners.map { |c, t| "#{c} x#{t}" }.join(', ')}) --" if rusted_trains.any?
+            "( #{owners.map { |c, t| "#{c} x#{t}" }.join(', ')}) --"
       end
 
       def show_progress_bar?
@@ -1662,8 +1665,10 @@ module Engine
           player_count = (self.class::CERT_LIMIT_COUNTS_BANKRUPTED ? players : players.reject(&:bankrupt)).size
           cert_limit = cert_limit[player_count]
         end
-        cert_limit = cert_limit.reject { |k, _| k.to_i < @corporations.size }
-                       .min_by(&:first)&.last || cert_limit.first.last if cert_limit.is_a?(Hash)
+        if cert_limit.is_a?(Hash)
+          cert_limit = cert_limit.reject { |k, _| k.to_i < @corporations.size }
+                         .min_by(&:first)&.last || cert_limit.first.last
+        end
         cert_limit || @cert_limit
       end
 
@@ -2061,9 +2066,9 @@ module Engine
       end
 
       def action_processed(_action)
-        @corporations.dup.each do |corporation|
-          close_corporation(corporation) if corporation.share_price&.type == :close
-        end if stock_market.has_close_cell
+        return unless stock_market.has_close_cell
+
+        @corporations.dup.each { |c| close_corporation(c) if c.share_price&.type == :close }
       end
 
       def priority_deal_player
@@ -2202,12 +2207,12 @@ module Engine
         @players.any?(&:bankrupt)
       end
 
-      def all_potential_upgrades(tile, tile_manifest: false) # rubocop:disable Lint/UnusedMethodArgument
+      def all_potential_upgrades(tile, tile_manifest: false, selected_company: nil)
         colors = Array(@phase.phases.last[:tiles])
         @all_tiles
           .select { |t| colors.include?(t.color) }
           .uniq(&:name)
-          .select { |t| upgrades_to?(tile, t) }
+          .select { |t| upgrades_to?(tile, t, selected_company: selected_company) }
           .reject(&:blocks_lay)
       end
 
