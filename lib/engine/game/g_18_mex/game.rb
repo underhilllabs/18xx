@@ -1056,7 +1056,7 @@ module Engine
           @merged_cities_to_select = []
         end
 
-        def upgrades_to?(from, to, special = false)
+        def upgrades_to?(from, to, _special = false, selected_company: nil)
           # Copper Canyon cannot be upgraded
           return false if from.name == '470'
 
@@ -1068,7 +1068,7 @@ module Engine
           super
         end
 
-        def all_potential_upgrades(tile, tile_manifest: false)
+        def all_potential_upgrades(tile, tile_manifest: false, selected_company: nil)
           # Copper Canyon cannot be upgraded
           return [] if tile.name == '470'
 
@@ -1173,7 +1173,7 @@ module Engine
           # Sort eligible corporations so that they are in player order
           # starting with the player to the left of the one that bought the 5 train
           index_for_trigger = @players.index(@ndm_merge_trigger)
-          order = Hash[@players.each_with_index.map { |p, i| i <= index_for_trigger ? [p, i + 10] : [p, i] }]
+          order = @players.each_with_index.map { |p, i| i <= index_for_trigger ? [p, i + 10] : [p, i] }.to_h
           floated_player_corps.sort_by! { |c| [order[c.player], @round.entities.index(c)] }
 
           # If any non-floated corporation has not yet been ipoed

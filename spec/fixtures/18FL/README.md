@@ -1,3 +1,12 @@
 # 18FL Mock Game Manifest
-hotseat01
- * No tokens / hotels are laid in this. Privates are not used. This is a full game.
+hotseat01 & hotseat02 were removed due to illegal tile lays
+
+ hotseat03
+ * 4p game
+ * privates are used
+ * tokens are used
+ * hotels are used
+ * incomplete game
+ hotseat04
+ * 2p game
+ * p1 is used

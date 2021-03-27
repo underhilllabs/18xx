@@ -1162,6 +1162,15 @@ module Engine
           minors + majors
         end
 
+        def sorted_corporations
+          # Corporations sorted by some potential game rules
+          ipoed, others = corporations.partition(&:ipoed)
+
+          # hide non-ipoed majors until phase 4
+          others.reject! { |c| c.type == :major } unless @show_majors
+          ipoed.sort + others
+        end
+
         def unstarted_corporation_summary
           unipoed = @corporations.reject(&:ipoed)
           minor = unipoed.select { |c| c.type == :minor }
@@ -1314,7 +1323,7 @@ module Engine
           entity.type == :national ? 'Nat’l' : entity.type.capitalize
         end
 
-        def upgrades_to?(from, to, special = false)
+        def upgrades_to?(from, to, _special = false, selected_company: nil)
           # O labelled tile upgrades to Ys until Grey
           return super unless self.class::HEX_WITH_O_LABEL.include?(from.hex.name)
 
@@ -1497,7 +1506,7 @@ module Engine
           TRAINS_REMOVE_2_PLAYER.each do |train_name, count|
             trains = depot.upcoming.select { |t| t.name == train_name }.reverse.take(count)
 
-            trains.each { |t| depot.remove_train(t) }
+            trains.each { |t| depot.forget_train(t) }
           end
 
           # Standard game, remove 2 privates randomly
@@ -1527,6 +1536,7 @@ module Engine
           @corporations, @future_corporations = @corporations.partition do |corporation|
             corporation.type == :minor && !self.class::GREEN_CORPORATIONS.include?(corporation.id)
           end
+          @show_majors = false
         end
 
         def event_green_minors_available!
@@ -1544,6 +1554,7 @@ module Engine
 
         def event_majors_can_ipo!
           @log << 'Majors can now be started via IPO'
+          @show_majors = true
           # Done elsewhere
         end
 

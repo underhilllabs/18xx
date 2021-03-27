@@ -85,7 +85,7 @@ module Engine
 
         tile.rotate!(rotation)
 
-        unless @game.upgrades_to?(old_tile, tile, entity.company?)
+        unless @game.upgrades_to?(old_tile, tile, entity.company?, selected_company: entity.company? && entity || nil)
           raise GameError, "#{old_tile.name} is not upgradeable to #{tile.name}"
         end
         if !@game.loading && !legal_tile_rotation?(entity, hex, tile)
@@ -192,7 +192,7 @@ module Engine
         spender.spend(cost, @game.bank) if cost.positive?
 
         @log << "#{spender.name}"\
-          "#{spender == entity ? '' : " (#{entity.sym})"}"\
+          "#{spender == entity || !entity.company? ? '' : " (#{entity.sym})"}"\
           "#{cost.zero? ? '' : " spends #{@game.format_currency(cost)} and"}"\
           " lays tile ##{tile.name}"\
           " with rotation #{rotation} on #{hex.name}"\
@@ -248,8 +248,9 @@ module Engine
         end
         discount = ability&.discount || 0
 
-        @log << "#{entity.name} receives a discount of #{@game.format_currency(discount)} from "\
-          "#{ability.owner.name}" if discount.positive?
+        if discount.positive?
+          @log << "#{entity.name} receives a discount of #{@game.format_currency(discount)} from #{ability.owner.name}"
+        end
 
         discount
       end

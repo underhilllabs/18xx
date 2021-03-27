@@ -6,6 +6,7 @@ require 'view/game/token'
 require 'lib/settings'
 require 'lib/tile_selector'
 require 'lib/token_selector'
+require 'lib/color'
 
 module View
   module Game
@@ -14,6 +15,7 @@ module View
       class CitySlot < Base
         include Actionable
         include Lib::Settings
+        include Lib::Color
 
         needs :token
         needs :slot_index, default: 0
@@ -123,7 +125,13 @@ module View
                 city: @city,
                 tokener: @selected_company&.owned_by_player? ? @game.current_entity : nil,
                 slot: cheater || @slot_index,
-                token_type: next_tokens[0].type
+                token_type: next_tokens[0].type,
+              )
+              action.cost = step.token_cost_override(
+                action.entity,
+                action.city,
+                action.slot,
+                action.token,
               )
               store(:selected_company, nil, skip: true)
               process_action(action)
