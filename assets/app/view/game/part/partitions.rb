@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'lib/color'
 require 'lib/hex'
 require 'lib/settings'
 require 'view/game/part/base'
@@ -9,7 +8,6 @@ module View
   module Game
     module Part
       class Partitions < Base
-        include Lib::Color
         include Lib::Settings
 
         needs :tile
@@ -91,7 +89,7 @@ module View
             children << h(:path, attrs: {
                             d: d,
                             stroke: color(partition),
-                            'stroke-width': '5',
+                            'stroke-width': '8',
                           })
           end
 

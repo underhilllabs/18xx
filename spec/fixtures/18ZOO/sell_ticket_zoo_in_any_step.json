@@ -270,9 +270,7 @@
           "hexes": [
             "J9",
             "K4"
-          ],
-          "revenue": 50,
-          "revenue_str": "J9-K4"
+          ]
         }
       ]
     },
@@ -337,9 +335,7 @@
           "hexes": [
             "K4",
             "J9"
-          ],
-          "revenue": 50,
-          "revenue_str": "K4-J9"
+          ]
         }
       ]
     },
@@ -406,9 +402,7 @@
           "hexes": [
             "K4",
             "J9"
-          ],
-          "revenue": 50,
-          "revenue_str": "K4-J9"
+          ]
         }
       ]
     },
@@ -461,9 +455,7 @@
           "hexes": [
             "K4",
             "J9"
-          ],
-          "revenue": 50,
-          "revenue_str": "K4-J9"
+          ]
         }
       ]
     },
@@ -516,9 +508,7 @@
           "hexes": [
             "K4",
             "J9"
-          ],
-          "revenue": 50,
-          "revenue_str": "K4-J9"
+          ]
         }
       ]
     },

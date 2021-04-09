@@ -316,7 +316,7 @@ module Engine
               reachable: true,
               hexes: [],
               tiles: [],
-              closed_when_used_up: 'true',
+              closed_when_used_up: true,
               when: %w[track owning_player_or_turn],
             },
           ],
@@ -360,7 +360,7 @@ module Engine
             abilities: [
               {
                 when: 'any',
-                extra: 'true',
+                extra_action: true,
                 type: 'token',
                 owner_type: 'player',
                 count: 1,
@@ -694,7 +694,7 @@ module Engine
           key_island.lay_downgrade(key_island.original_tile)
 
           @log << 'The hurricane also destroys the hotels in Key West'
-          # TODO: Destroy Key West hotels
+          key_west.tile.icons.clear
           key_west.lay_downgrade(key_west.original_tile)
         end
 

@@ -202,6 +202,7 @@ module Engine
           79
           75
           76
+          914
           956
           957
           958
@@ -395,7 +396,7 @@ module Engine
           return unless s_train
           return if @subtrains[s_train].one? # always leave one allocated per supertrain
 
-          @subtrains[s_train].each do |sub|
+          @subtrains[s_train].dup.each do |sub|
             next unless @diesel_pool[sub][:allocated] && !@diesel_pool[sub][:used] && @subtrains[s_train].size > 1
 
             @diesel_pool[sub][:allocated] = false
@@ -704,13 +705,7 @@ module Engine
 
         def insolvent!(entity)
           @log << "#{entity.name} is now Insolvent and will be recapitalized"
-          # drop the price if insolvency was caused by not buying compulsory train
-          if concession_pending?(entity)
-            deferred_president_change(entity)
-            price = entity.share_price.price
-            @stock_market.move_down(entity)
-            log_share_price(entity, price)
-          end
+          deferred_president_change(entity) if concession_pending?(entity)
 
           # All stock in players' hands is returned to pool w/no compensation
           entity.player_share_holders.keys.each do |sh|
@@ -780,7 +775,7 @@ module Engine
         def sell_ipo_shares(entity)
           return if entity.ipo_shares.empty?
 
-          @log << "#{entity.ipo_shares.size} IPO share(s) of #{entity.name} are sold to share pool"
+          @log << "#{entity.ipo_shares.size} IPO share(s) of #{entity.name} are transferred to share pool"
           entity.ipo_shares.each do |share|
             @share_pool.transfer_shares(
               share.to_bundle,
@@ -995,12 +990,21 @@ module Engine
           entity&.corporation? && @corporation_info[entity][:type] == :railway
         end
 
+        # determine if a token lay is blocked by the need to keep a slot open
+        # for a pending concession
         def concession_blocks?(city)
           hex = city.hex
           return false unless (exits = CONCESSION_ROUTE_EXITS[hex.id])
           return false unless concession_incomplete?(@concession_route_corporations[hex.id])
           # take care of OO tile. Only care about city along concession route
           return false if (city.exits & exits).empty?
+
+          # if there is a reserved tile that has a city with the same connections
+          # and with more slots than this tile, it doesn't block
+          unless @reserved_tiles[hex.id].empty?
+            r_city = @reserved_tiles[hex.id][:tile].cities.find { |c| !(c.exits & exits).empty? }
+            return false if r_city && r_city.slots > city.slots
+          end
 
           # must be two slots available for another RR to put a token here
           (city.slots - city.tokens.count { |c| c }) < 2
@@ -1105,11 +1109,11 @@ module Engine
 
         # reorder based on cash
         def reorder_players
-          @players.sort_by!(&:cash).reverse!
+          @players.sort_by! { |p| -p.cash }
           @log << '-- New player order: --'
           @players.each.with_index do |p, idx|
-            pd = idx.zero? ? ' (Priority Deal)' : ''
-            @log << "#{p.name}#{pd}"
+            pd = idx.zero? ? ' - Priority Deal -' : ''
+            @log << "#{p.name}#{pd} (#{format_currency(p.cash)})"
           end
         end
 
@@ -1842,7 +1846,7 @@ module Engine
 
             return true if r.visited_stops.include?(stop)
           end
-          true
+          false
         end
 
         # actually, first highest train on route
@@ -1850,7 +1854,7 @@ module Engine
           max = 0
           max_route = nil
           this_route.routes.each do |r|
-            if r.visited_stops.include?(stop) && r.train.distance > max
+            if r.visited_stops.include?(stop) && !diesel?(r.train) && r.train.distance > max
               max = r.train.distance
               max_route = r
             end
@@ -1927,6 +1931,11 @@ module Engine
           public_mine_mines(corporation)
         end
 
+        def player_value(player)
+          player.value +
+            @minors.select { |m| m.owner == player }.sum { |m| mine_face_value(m) }
+        end
+
         def player_card_minors(player)
           @minors.select { |m| m.owner == player }
         end
@@ -1997,7 +2006,7 @@ module Engine
             '957' => 2,
             '958' => 2,
             '959' => 1,
-            '960' => 1,
+            '960' => 2,
             '961' => 2,
             '100' => 4,
             '101' => 1,
@@ -2032,7 +2041,7 @@ module Engine
             '987' => 2,
             '988' => 3,
             '989' => 2,
-            '990' => 2,
+            '990' => 1,
           }
         end
 
@@ -2531,7 +2540,7 @@ module Engine
                 100,
                 100,
               ],
-              color: '#2E270D',
+              color: '#959490',
               text_color: 'white',
               extended: {
                 type: :railway,
@@ -3101,7 +3110,7 @@ module Engine
               name: 'D',
               on: 'D',
               train_limit: 99,
-              tiles: %w[
+              tiles: %i[
                 yellow
                 green
                 brown

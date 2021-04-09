@@ -21,6 +21,19 @@ module Engine
             desc: 'The owning Corporation can place two connected narrow gauge yellow tiles in the Donegal'\
             ' hex and on adjacent hex. This action closes the company.',
             sym: 'DR',
+            abilities: [
+              {
+                type: 'tile_lay',
+                hexes: %w[F4 F2 E3 E5 G3 G5],
+                tiles: %w[IR5 77 78 79],
+                when: 'track',
+                owner_type: 'corporation',
+                count: 2,
+                must_lay_together: true,
+                must_lay_all: true,
+                closed_when_used_up: true,
+              },
+            ],
           },
           {
             name: 'Board of Works',
@@ -46,6 +59,19 @@ module Engine
             desc: 'The owning Corporation can place two connected narrow gauge yellow tiles in the'\
             ' Tralee and Dingle hexes. This action closes the company.',
             sym: 'TDR',
+            abilities: [
+              {
+                type: 'tile_lay',
+                hexes: %w[A19 B18],
+                tiles: ['IR5'],
+                when: 'track',
+                owner_type: 'corporation',
+                count: 2,
+                must_lay_together: true,
+                must_lay_all: true,
+                closed_when_used_up: true,
+              },
+            ],
           },
           {
             name: 'Drumglass Colliery Railway',
@@ -89,6 +115,17 @@ module Engine
             ' to one of: Londonderry, Kingstown, or Waterford. This action closes the company,'\
             ' but any Corporation may run to the tile for the rest of the game.',
             sym: 'TIM',
+            abilities: [
+              {
+                type: 'tile_lay',
+                hexes: %w[F0 H0 G-1 J12 G21 H20],
+                tiles: ['IM'],
+                when: 'track',
+                owner_type: 'corporation',
+                count: 1,
+                closed_when_used_up: true,
+              },
+            ],
           },
           {
             name: 'Dublin & Kingstown Railway',
@@ -98,6 +135,11 @@ module Engine
             ' price at half bid; places a 2H-Train on the charter; places the winning bid'\
             ' in the D&KR treasury less the cost of the train and discards this card.',
             sym: 'DK',
+            abilities: [
+            { type: 'close', when: 'bought_train', corporation: 'DKR' },
+            { type: 'no_buy' },
+            { type: 'shares', shares: 'DKR_0' },
+            ],
           },
       ].freeze
 
@@ -123,7 +165,7 @@ module Engine
             tokens: [0, 20, 50],
             shares: [20, 10, 10, 10, 10, 10, 10, 10, 10],
             always_market_price: true,
-            color: 'blue',
+            color: '#3DAAD6',
             reservation_color: nil,
             type: 'major',
             max_ownership_percent: 70,
@@ -162,7 +204,7 @@ module Engine
             tokens: [0, 20, 50],
             shares: [20, 10, 10, 10, 10, 10, 10, 10, 10],
             always_market_price: true,
-            color: 'pink',
+            color: '#DB7093',
             reservation_color: nil,
             type: 'major',
             max_ownership_percent: 70,
@@ -203,7 +245,7 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'red', # @todo: rouge
+            color: '#8B4513',
             reservation_color: nil,
             type: 'minor',
             coordinates: 'G1',
@@ -223,13 +265,13 @@ module Engine
           },
           {
             float_percent: 40,
-            sym: 'EBS',
-            name: 'Einniskillen, Bundoran & Sligo Railway',
-            logo: '18_ireland/EBS',
+            sym: 'EBSR',
+            name: 'Enniskillen, Bundoran & Sligo Railway',
+            logo: '18_ireland/EBSR',
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'yellow',
+            color: '#F5DEB3',
             text_color: 'black',
             reservation_color: nil,
             type: 'minor',
@@ -237,9 +279,9 @@ module Engine
           },
           {
             float_percent: 40,
-            sym: 'SLNC',
+            sym: 'SLNCR',
             name: 'Sligo, Leitrim & Northern Counties Railway',
-            logo: '18_ireland/SLNC',
+            logo: '18_ireland/SLNCR',
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
@@ -256,7 +298,7 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'yellow', # @todo: more mustardy
+            color: '#98FB98',
             text_color: 'black',
             reservation_color: nil,
             type: 'minor',
@@ -299,7 +341,7 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'brown', # @todo: not quite right -> tan
+            color: 'coral',
             text_color: 'black',
             reservation_color: nil,
             type: 'minor',
@@ -327,7 +369,7 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'blue', # @todo: more navy blue
+            color: '#9370DB',
             reservation_color: nil,
             type: 'minor',
             coordinates: 'F10',
@@ -340,7 +382,8 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'blue', # @todo: light blue
+            color: 'lightblue',
+            text_color: 'black',
             reservation_color: nil,
             type: 'minor',
             coordinates: 'G19',
@@ -353,7 +396,7 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'green',
+            color: '#556B2F',
             reservation_color: nil,
             type: 'minor',
             coordinates: 'G13',
@@ -366,7 +409,8 @@ module Engine
             tokens: [0],
             shares: [40, 20, 20, 20],
             always_market_price: true,
-            color: 'red',
+            color: '#DDA0DD',
+            text_color: 'black',
             reservation_color: nil,
             type: 'minor',
             coordinates: 'G13',

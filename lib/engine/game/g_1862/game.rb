@@ -5,6 +5,8 @@ require_relative '../base'
 require_relative 'entities'
 require_relative 'map'
 require_relative 'step/charter_auction'
+require_relative 'step/buy_tokens'
+require_relative 'step/buy_sell_par_shares'
 
 module Engine
   module Game
@@ -13,6 +15,8 @@ module Engine
         include_meta(G1862::Meta)
         include Entities
         include Map
+
+        attr_accessor :chartered
 
         register_colors(black: '#000000',
                         orange: '#f48221',
@@ -103,142 +107,250 @@ module Engine
              330i
              350i
              375i
-             400i
-             430i
-             495i
-             530i
-             570i
-             610i
-             655i
-             700i
-             750i
-             800i
-             850i
-             900i
-             950i
+             400j
+             430j
+             495j
+             530j
+             570j
+             610j
+             655j
+             700j
+             750j
+             800j
+             850j
+             900j
+             950j
              1000e],
            ].freeze
 
-        PHASES = [{ name: '2', train_limit: 4, tiles: [:yellow], operating_rounds: 1 },
-                  {
-                    name: '3',
-                    on: '3+2',
-                    train_limit: 4,
-                    tiles: %i[yellow green],
-                    operating_rounds: 2,
-                  },
-                  {
-                    name: '4',
-                    on: '4+2',
-                    train_limit: 3,
-                    tiles: %i[yellow green],
-                    operating_rounds: 2,
-                  },
-                  {
-                    name: '5',
-                    on: '5+3',
-                    train_limit: 3,
-                    tiles: %i[yellow green brown],
-                    operating_rounds: 3,
-                  },
-                  {
-                    name: '6',
-                    on: '6+3',
-                    train_limit: 2,
-                    tiles: %i[yellow green brown],
-                    operating_rounds: 3,
-                  },
-                  {
-                    name: '7',
-                    on: '7+4',
-                    train_limit: 2,
-                    tiles: %i[yellow green brown],
-                    operating_rounds: 3,
-                  },
-                  {
-                    name: '8',
-                    on: '8+4',
-                    train_limit: 2,
-                    tiles: %i[yellow green brown],
-                    operating_rounds: 3,
-                  },
-                  {
-                    name: '9',
-                    on: '9+5',
-                    train_limit: 2,
-                    tiles: %i[yellow green brown],
-                    operating_rounds: 3,
-                  }].freeze
+        PHASES = [
+          {
+            name: 'A',
+            train_limit: 9, # 3 per type
+            tiles: [:yellow],
+            operating_rounds: 1,
+          },
+          {
+            name: 'B',
+            on: '2F',
+            train_limit: 9, # 3 per type
+            tiles: %i[yellow green],
+            operating_rounds: 2,
+          },
+          {
+            name: 'C',
+            on: '3F',
+            train_limit: 9, # 3 per type
+            tiles: %i[yellow green],
+            operating_rounds: 2,
+          },
+          {
+            name: 'D',
+            on: '5F',
+            train_limit: 9, # 3 per type
+            tiles: %i[yellow green brown],
+            operating_rounds: 3,
+          },
+          {
+            name: 'E',
+            on: '6F',
+            train_limit: 6, # 2 per type
+            tiles: %i[yellow green brown],
+            operating_rounds: 3,
+          },
+          {
+            name: 'F',
+            on: '7F',
+            train_limit: 6, # 2 per type
+            tiles: %i[yellow green brown],
+            operating_rounds: 3,
+          },
+          {
+            name: 'G',
+            on: '8F',
+            train_limit: 3, # FIXME: 3 across all types
+            tiles: %i[yellow green brown],
+            operating_rounds: 3,
+          },
+          {
+            name: 'H',
+            on: '9F',
+            train_limit: 3, # FIXME: 3 across all types
+            tiles: %i[yellow green brown],
+            operating_rounds: 3,
+          },
+        ].freeze
 
         TRAINS = [
           {
-            name: '2+1',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 2, 'visit' => 2 },
-                       { 'nodes' => %w[town halt], 'pay' => 1, 'visit' => 99 }],
-            price: 250,
-            rusts_on: '4+2',
-            num: 5,
+            name: '1F',
+            distance: 1,
+            price: 100,
+            rusts_on: '3F',
+            num: 7,
+            variants: [
+              {
+                name: '2L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 2, 'visit' => 2 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 100,
+              },
+              {
+                name: '2E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 2, 'visit' => 2 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 100,
+              },
+            ],
           },
           {
-            name: '3+2',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 3, 'visit' => 3 },
-                       { 'nodes' => %w[town halt], 'pay' => 2, 'visit' => 99 }],
-            price: 300,
-            rusts_on: '6+3',
+            name: '2F',
+            distance: 2,
+            price: 200,
+            rusts_on: '6F',
+            num: 6,
+            variants: [
+              {
+                name: '2/3L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 2, 'visit' => 3 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 200,
+              },
+              {
+                name: '2/3E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 2, 'visit' => 3 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 200,
+              },
+            ],
+          },
+          {
+            name: '3F',
+            distance: 3,
+            price: 280,
+            rusts_on: '7F',
             num: 4,
+            variants: [
+              {
+                name: '3L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 3, 'visit' => 3 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 280,
+              },
+              {
+                name: '3E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 3, 'visit' => 3 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 280,
+              },
+            ],
           },
           {
-            name: '4+2',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 4, 'visit' => 4 },
-                       { 'nodes' => %w[town halt], 'pay' => 2, 'visit' => 99 }],
-            price: 350,
-            rusts_on: '7+4',
+            name: '5F',
+            distance: 5,
+            price: 360,
+            rusts_on: '8F',
             num: 3,
+            variants: [
+              {
+                name: '4L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 4, 'visit' => 4 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 360,
+              },
+              {
+                name: '4E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 4, 'visit' => 4 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 360,
+              },
+            ],
           },
           {
-            name: '5+3',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 5, 'visit' => 5 },
-                       { 'nodes' => %w[town halt], 'pay' => 3, 'visit' => 99 }],
-            price: 400,
-            rusts_on: '8+4',
-            num: 2,
-          },
-          {
-            name: '6+3',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 6, 'visit' => 6 },
-                       { 'nodes' => %w[town halt], 'pay' => 3, 'visit' => 99 }],
+            name: '6F',
+            distance: 6,
             price: 500,
-            num: 2,
-            events: [{ 'type' => 'fishbourne_to_bank' }],
+            num: 3,
+            variants: [
+              {
+                name: '4/5L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 4, 'visit' => 5 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 500,
+              },
+              {
+                name: '4/5E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 4, 'visit' => 5 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 500,
+              },
+            ],
           },
           {
-            name: '7+4',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 7, 'visit' => 7 },
-                       { 'nodes' => %w[town halt], 'pay' => 4, 'visit' => 99 }],
+            name: '7F',
+            distance: 7,
             price: 600,
-            num: 1,
+            num: 2,
+            variants: [
+              {
+                name: '5L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 5, 'visit' => 5 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 600,
+              },
+              {
+                name: '5E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 5, 'visit' => 5 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 600,
+              },
+            ],
           },
           {
-            name: '8+4',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 8, 'visit' => 8 },
-                       { 'nodes' => %w[town halt], 'pay' => 4, 'visit' => 99 }],
+            name: '8F',
+            distance: 8,
             price: 700,
             num: 1,
-            events: [{ 'type' => 'relax_cert_limit' }],
+            variants: [
+              {
+                name: '5/6L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 5, 'visit' => 6 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 700,
+              },
+              {
+                name: '5/6E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 5, 'visit' => 6 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 700,
+              },
+            ],
           },
           {
-            name: '9+5',
-            distance: [{ 'nodes' => %w[city offboard], 'pay' => 9, 'visit' => 9 },
-                       { 'nodes' => %w[town halt], 'pay' => 5, 'visit' => 99 }],
+            name: '9F',
+            distance: 9,
             price: 800,
-            num: 16,
-            events: [{ 'type' => 'southern_forms' }],
+            num: 99,
+            variants: [
+              {
+                name: '6L',
+                distance: [{ 'nodes' => %w[city], 'pay' => 6, 'visit' => 6 },
+                           { 'nodes' => ['town'], 'pay' => 99, 'visit' => 99 }],
+                price: 800,
+              },
+              {
+                name: '6E',
+                distance: [{ 'nodes' => %w[city offboard], 'pay' => 6, 'visit' => 6 },
+                           { 'nodes' => ['town'], 'pay' => 0, 'visit' => 99 }],
+                price: 800,
+              },
+            ],
           },
         ].freeze
 
         EBUY_PRES_SWAP = false # allow presidential swaps of other corps when ebuying
         EBUY_OTHER_VALUE = false # allow ebuying other corp trains for up to face
-        HOME_TOKEN_TIMING = :float
+        HOME_TOKEN_TIMING = :operate
         SELL_AFTER = :any_time
         SELL_BUY_ORDER = :sell_buy
         MARKET_SHARE_LIMIT = 100
@@ -250,9 +362,10 @@ module Engine
         STOCKMARKET_COLORS = {
           par: :yellow,
           endgame: :orange,
-          close: :purple,
-          repar: :gray,
+          close: :gray,
+          repar: :peach,
           ignore_one_sale: :olive,
+          ignore_two_sales: :green,
           multiple_buy: :brown,
           unlimited: :orange,
           no_cert_limit: :yellow,
@@ -271,11 +384,15 @@ module Engine
           liquidation: 'UNUSED',
           repar: 'Par values for unchartered corporations',
           ignore_one_sale: 'Ignore first share sold when moving price (except president)',
+          ignore_two_sales: 'Ignore first 2 shares sold when moving price (except president)',
         }.freeze
 
         TILE_LAYS = [{ lay: true, upgrade: true }, { lay: :not_if_upgraded_or_city, upgrade: false }].freeze
 
         GAME_END_CHECK = { stock_market: :current_or, bank: :current_or, custom: :immediate }.freeze
+
+        CHARTERED_TOKEN_COST = 60
+        UNCHARTERED_TOKEN_COST = 40
 
         def init_share_pool
           SharePool.new(self, allow_president_sale: true)
@@ -286,8 +403,8 @@ module Engine
 
           # create charter companies on the fly based on corporations
           game_corporations.map do |corp|
-            description = "Parliamentary Charter for #{corp[:name]}"
-            name = "#{corp[:sym]} Charter"
+            description = "Parliamentary Obligation for #{corp[:name]}"
+            name = "#{corp[:sym]} Obligation"
 
             clist << Company.new(sym: corp[:sym], name: name, value: 0, revenue: 0, desc: description)
           end
@@ -297,15 +414,153 @@ module Engine
 
         def setup; end
 
+        def setup_preround
+          @double_parliament = true
+
+          # randomize order of corporations, then remove some based on player count
+          @offer_order = @corporations.sort_by { rand }
+          num_removed = case @players.size
+                        when 8
+                          2
+                        when 7
+                          3
+                        else
+                          4
+                        end
+          removed = @offer_order.take(num_removed)
+          removed.each do |corp|
+            @offer_order.delete(corp)
+            @corporations.delete(corp)
+            remove_reservation(corp)
+            @companies.delete(@companies.find { |c| c.id == corp.id })
+
+            @log << "Removing #{corp.name} from game"
+          end
+
+          @chartered = {}
+
+          # randomize and distribute train permits
+          permit_list = 6.times.flat_map { %i[freight express local] }
+          permit_list.pop(2) if @players.size < 7
+          permit_list.sort_by! { rand }
+          @permits = Hash.new { |h, k| h[k] = [] }
+          @corporations.each_with_index { |corp, idx| @permits[corp] << permit_list[idx] }
+
+          # record what phases corp become available
+          @starting_phase = {}
+          @offer_order.each { |c| @starting_phase[c] = 'A' }
+          @offer_order.reverse.take(8).each { |c| @starting_phase[c] = 'B' }
+          @offer_order.reverse.take(4).each { |c| @starting_phase[c] = 'C' }
+        end
+
+        def remove_reservation(corporation)
+          hexes.each do |hex|
+            hex.tile.cities.each do |city|
+              city.reservations.delete(corporation) if city.reserved_by?(corporation)
+            end
+          end
+        end
+
+        def share_prices
+          repar_prices
+        end
+
+        def repar_prices
+          @repar_prices ||= stock_market.market.first.select { |p| p.type == :repar || p.type == :par }
+        end
+
+        def ipoable_corporations
+          ready_corporations.reject(&:ipoed)
+        end
+
+        def ready_corporations
+          @offer_order.select { |corp| available_to_start?(corp) }
+        end
+
         # FIXME
-        def available_charters
-          @companies
+        def available_to_start?(corporation)
+          @phase.available?(@starting_phase[corporation])
+        end
+
+        def add_obligation(entity, corporation)
+          charter = company_by_id(corporation.id)
+          charter.owner = entity
+          entity.companies << charter
+          @log << "#{entity.name} is under obligation for #{corporation.name}"
+          @chartered[corporation] = true
+        end
+
+        def float_corporation(corporation)
+          super
+          charter = company_by_id(corporation.id)
+
+          unless (entity = charter.owner)
+            # unchartered company
+            raise GameError, 'Player missing charter' if @chartered[corporation]
+
+            @round.buy_tokens = corporation
+            @log << "#{corporation.name} (#{corporation.owner.name}) must buy tokens"
+            @round.clear_cache!
+            return
+          end
+
+          raise GameError, 'Player has charter in error' unless @chartered[corporation]
+
+          # chartered company
+          entity.companies.delete(charter)
+          charter.owner = nil
+          @log << "#{entity.name} has completed obligation for #{corporation.name}"
+          entity.companies.delete(charter)
+
+          # assumption: corp defaults to three tokens
+          raise GameError, 'Wrong number of tokens for Chartered Company' if corporation.tokens.size != 3
+
+          @log << "#{corporation.name} buys 3 tokens for #{format_currency(CHARTERED_TOKEN_COST * 3)}"
+          corporation.spend(CHARTERED_TOKEN_COST * 3, @bank)
+        end
+
+        def convert_to_full!(corporation)
+          corporation.capitalization = :full
+          corporation.ipo_owner = @bank
+          corporation.share_holders.keys.each do |sh|
+            next if sh == @bank
+
+            corporation.share_holders[sh] = 0
+            sh.shares_by_corporation[corporation].dup.each do |share|
+              share.owner = @bank
+              sh.shares_by_corporation[corporation].delete(share)
+              @bank.shares_by_corporation[corporation] << share
+              corporation.share_holders[@bank] += share.percent
+            end
+          end
+        end
+
+        def convert_to_incremental!(corporation)
+          corporation.capitalization = :incremental
+          corporation.ipo_owner = corporation
+          corporation.share_holders.keys.each do |sh|
+            next if sh == corporation
+
+            corporation.share_holders[sh] = 0
+            sh.shares_by_corporation[corporation].dup.each do |share|
+              share.owner = corporation
+              sh.shares_by_corporation[corporation].delete(share)
+              corporation.shares_by_corporation[corporation] << share
+              corporation.share_holders[corporation] += share.percent
+            end
+          end
+        end
+
+        def purchase_tokens!(corporation, count)
+          (count - 2).times { corporation.tokens << Token.new(corporation, price: 0) }
+          corporation.spend((cost = UNCHARTERED_TOKEN_COST * count), @bank)
+          @log << "#{corporation.name} buys #{count} tokens for #{format_currency(cost)}"
         end
 
         def stock_round
           Engine::Round::Stock.new(self, [
-            Engine::Step::DiscardTrain,
-            Engine::Step::BuySellParShares,
+            G1862::Step::BuyTokens,
+            G1862::Step::BuySellParShares,
           ])
         end
 
@@ -324,8 +579,14 @@ module Engine
           StockMarket.new(self.class::MARKET, [], zigzag: true)
         end
 
-        def new_auction_round
-          Engine::Round::Auction.new(self, [
+        def init_round
+          @log << '-- Initial Parliament Round -- '
+          new_parliament_round
+        end
+
+        def new_parliament_round
+          @log << "-- Parliament Round #{@turn} -- " unless @double_parliament
+          G1862::Round::Parliament.new(self, [
             G1862::Step::CharterAuction,
           ])
         end
@@ -333,6 +594,13 @@ module Engine
         def next_round!
           @round =
             case @round
+            when G1862::Round::Parliament
+              if @double_parliament
+                @double_parliament = false
+                new_parliament_round
+              else
+                new_stock_round
+              end
             when Engine::Round::Stock
               @operating_rounds = @phase.operating_rounds
               reorder_players
@@ -345,7 +613,7 @@ module Engine
                 @turn += 1
                 or_round_finished
                 or_set_finished
-                new_stock_round
+                new_parliament_round
               end
             when init_round.class
               init_round_finished
@@ -387,12 +655,26 @@ module Engine
           @round.force_next_entity! if @round.operating?
         end
 
-        # FIXME
         def status_array(corp)
           status = []
           status << %w[Receivership bold] if corp.receivership?
-
+          status << %w[Chartered bold] if @chartered[corp]
+          status << ["Phase available: #{@starting_phase[corp]}"] unless @phase.available?(@starting_phase[corp])
+          status << ["Permits: #{@permits[corp].map(&:to_s).join(',')}"]
           status
+        end
+
+        def sorted_corporations
+          ipoed, others = corporations.partition(&:ipoed)
+          ipoed.sort + others.sort.sort_by { |c| @starting_phase[c] }
+        end
+
+        def ipo_name(entity = nil)
+          if entity&.capitalization == :incremental
+            'Treasury'
+          else
+            'IPO'
+          end
         end
 
         # FIXME: need to check for no trains?
@@ -403,25 +685,24 @@ module Engine
         end
 
         def corporation_available?(entity)
-          entity.corporation? && can_ipo?(entity)
+          entity.corporation? && ready_corporations.include?(entity)
         end
 
-        # FIXME: changes from 1860?
         def bundles_for_corporation(share_holder, corporation, shares: nil)
           return [] unless corporation.ipoed
 
           shares = (shares || share_holder.shares_of(corporation)).sort_by(&:price)
 
           shares.flat_map.with_index do |share, index|
-            bundle = shares.take(index + 1)
-            percent = bundle.sum(&:percent)
-            bundles = [Engine::ShareBundle.new(bundle, percent)]
+            bundle_shares = shares.take(index + 1)
+            percent = bundle_shares.sum(&:percent)
+            bundles = [Engine::ShareBundle.new(bundle_shares, percent)]
             if share.president
               normal_percent = corporation.share_percent
               difference = corporation.presidents_percent - normal_percent
               num_partial_bundles = difference / normal_percent
               (1..num_partial_bundles).each do |n|
-                bundles.insert(0, Engine::ShareBundle.new(bundle, percent - (normal_percent * n)))
+                bundles.insert(0, Engine::ShareBundle.new(bundle_shares, percent - (normal_percent * n)))
               end
             end
             bundles.each { |b| b.share_price = (b.price_per_share / 2).to_i if corporation.trains.empty? }
@@ -430,7 +711,7 @@ module Engine
         end
 
         def selling_movement?(corporation)
-          corporation.operated? && !@no_price_drop_on_sale
+          corporation.floated? && !@phase.available?('H')
         end
 
         def sell_shares_and_change_price(bundle, allow_president_change: true, swap: nil)
@@ -439,7 +720,10 @@ module Engine
 
           @share_pool.sell_shares(bundle, allow_president_change: allow_president_change, swap: swap)
           num_shares = bundle.num_shares
-          num_shares -= 1 if corporation.share_price.type == :ignore_one_sale
+          unless corporation.owner == bundle.owner
+            num_shares -= 1 if corporation.share_price.type == :ignore_one_sale
+            num_shares -= 2 if corporation.share_price.type == :ignore_two_sales
+          end
           num_shares.times { @stock_market.move_left(corporation) } if selling_movement?(corporation)
           log_share_price(corporation, price)
           check_bankruptcy!(corporation)

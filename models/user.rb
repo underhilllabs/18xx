@@ -21,7 +21,8 @@ class User < Base
   ]).freeze
 
   def update_settings(params)
-    self.name = params['name']
+    self.name = params['name'] if params['name']
+    self.email = params['email'] if params['email']
     params.each do |key, value|
       settings[key] = value if SETTINGS.include?(key)
     end
@@ -67,7 +68,8 @@ class User < Base
   def validate
     super
     validates_unique(:name, :email, { message: 'is already registered' })
-    validates_format /^[^\s]+$/, :name, message: 'may not be empty'
+    validates_format /^.+$/, :name, message: 'may not be empty'
+    validates_format /^[^\s].*$/, :name, message: 'may not start with a whitespace'
     validates_format /^[^@\s]+@[^@\s]+\.[^@\s]+$/, :email
   end
 end
